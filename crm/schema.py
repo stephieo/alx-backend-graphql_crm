@@ -207,11 +207,13 @@ class Mutation(graphene.ObjectType):
 
 
 class Query(graphene.ObjectType):
+    # definng the outputs of the queries
     hello = graphene.String()
     all_customers = graphene.List(CustomerType)
     all_products = graphene.List(ProductType)
     all_orders = graphene.List(OrderType)
 
+    # this is the equivalent of mutate functions i think? defining the logic for each query
     def resolve_all_customers(root, info):
         return Customer.objects.all()
 
