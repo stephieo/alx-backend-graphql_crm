@@ -1,25 +1,31 @@
 import graphene
 from graphene_django import DjangoObjectType
-from .models import Customer, Order, Product
+from crm.models import Customer, Order, Product
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+
+
+
+
+# debugging
+# print(Customer, Product, Order)
 
 # ==========
 #  defining GraphQL types. these are analogous to the Django Model
 # ============
 
-class CustomerType(graphene.ObjectType):
+class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer # defining which model  maps to this type
-        fields = ("id","name", "email", "phone") # defining which field are available to be accessed of mutated
+        fields =  ("id","name", "email", "phone") # defining which field are available to be accessed of mutated
 
-class ProductType(graphene.ObjectType):
+class ProductType(DjangoObjectType):
     class Meta:
         model = Product # defining which model  maps to this type
-        fields = ("id","name", "price", "stock") # defining which field are available to be accessed of mutated
+        fields = ("id", "name", "price", "stock") # defining which field are available to be accessed of mutated
 
-class OrderType(graphene.ObjectType):
+class OrderType(DjangoObjectType):
     class Meta:
         model = Order # defining which model  maps to this type
         fields = ("id","customer", "products", "order_date", "total_amount") # defining which field are available to be accessed of mutated
@@ -29,9 +35,9 @@ class OrderType(graphene.ObjectType):
 # Defining Inputs
 # ==============  
 class CustomerInput(graphene.InputObjectType):
-    name = graphene.String(reqiured=True)
-    email = graphene.String(reqiured=True)
-    phone = graphene.String(reqiured=False)
+    name = graphene.String(required=True)
+    email = graphene.String(required=True)
+    phone = graphene.String(required=False)
 
 class ProductInput(graphene.InputObjectType):
     name = graphene.String(required=True)
@@ -49,10 +55,8 @@ class OrderInput(graphene.InputObjectType):
 class CreateCustomer(graphene.Mutation):
     class Arguments:
         """defining the arguments needed for the mutation"""
-        name = graphene.String(reqiured=True)
-        email = graphene.String(reqiured=True)
-        phone = graphene.String(reqiured=False)
-
+        customer_data = CustomerInput(required=True)
+ 
     #defining the return fields for this mutation
     customer = graphene.Field(CustomerType)
     message = graphene.String()
@@ -61,6 +65,9 @@ class CreateCustomer(graphene.Mutation):
     #defining the logic for the mutation. analogous to making a custom create classs in DRF
     @classmethod
     def mutate(cls, root, info, name, email, phone=None):
+        name = customer_data.name
+        email = customer_data.email
+        phone = customer_data.phone
         # validating  email
         if Customer.objects.filter(email=email).exists():
             raise ValidationError("this email is already in use")
@@ -84,9 +91,9 @@ class BulkCreateCustomers(graphene.Mutation):
         customer_list = CustomerInput(required=True)
     
     customers = graphene.List(CustomerType)
-    creation_errors =graphene.List(String)
+    creation_errors =graphene.List(graphene.String)
     message = "Bulk creation complete"
-
+ 
 
     @classmethod
     def mutate(cls, root, info, customer_list):
@@ -178,14 +185,14 @@ class CreateOrder(graphene.Mutation):
             order = Order.objects.create(
                 customer=customer_id,
                 products=product_list,
-                total_amount=total_amount
+                total_amount=total_amount,
                 order_date=order_date
                 )
         return CreateOrder(order=order, message="Order created successfully")
 
 
 # ==============
-# Main Mutation class.
+# Main Mutation & Query class.
 # =================
 
 class Mutation(graphene.ObjectType):
@@ -199,3 +206,20 @@ class Mutation(graphene.ObjectType):
     create_order = CreateOrder.Field()
 
 
+class Query(graphene.ObjectType):
+    hello = graphene.String()
+    all_customers = graphene.List(CustomerType)
+    all_products = graphene.List(ProductType)
+    all_orders = graphene.List(OrderType)
+
+    def resolve_all_customers(root, info):
+        return Customer.objects.all()
+
+    def resolve_all_products(root, info):
+        return Product.objects.all()
+
+    def resolve_all_orders(root, info):
+        return Order.objects.all()
+
+    def resolve_hello(self, info):
+        return "Hello, GraphQL!"
