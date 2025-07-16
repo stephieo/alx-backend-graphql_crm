@@ -164,11 +164,10 @@ class CreateOrder(graphene.Mutation):
         product_list = []
         for index, product_id in enumerate(product_ids):
             try:
-                product = Product.objects.filter(id=product_id)
-            except:
-                Product.DoesNotExist:
+                product = Product.objects.get(id=product_id)
+                product_list.append(product)
+            except Product.DoesNotExist:
                 raise ValidationError(f"Item {index+1}, {product_id}: Product does not exist")
-            product_list.append(product)
 
         if len(product_list) < len(product_ids):
             raise ValidationError("Invalid products in order")

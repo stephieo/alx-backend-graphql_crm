@@ -1,8 +1,9 @@
 from django.db import models
+from django.utils import timezone
 
 # Create your models here.
 class Customer(models.Model):
-    name = models.Charfield(max_length=100)
+    name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=15, blank=True)
 
