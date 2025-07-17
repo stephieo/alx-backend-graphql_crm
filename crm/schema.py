@@ -1,9 +1,11 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
 from crm.models import Customer, Order, Product
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from .filters import CustomerFilter, OrderFilter, ProductFilter
 
 
 
@@ -18,17 +20,23 @@ from django.utils import timezone
 class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer # defining which model  maps to this type
-        fields =  ("id","name", "email", "phone") # defining which field are available to be accessed of mutated
+        fields =  ("id","name", "email", "phone", 'created_at') # defining which field are available to be accessed of mutated
+        filterset_class = CustomerFilter
+        interfaces = (graphene.relay.Node,) # needed for connection filter
 
 class ProductType(DjangoObjectType):
     class Meta:
         model = Product # defining which model  maps to this type
         fields = ("id", "name", "price", "stock") # defining which field are available to be accessed of mutated
+        filterset_class = ProductFilter
+        interfaces = (graphene.relay.Node,)
 
 class OrderType(DjangoObjectType):
     class Meta:
         model = Order # defining which model  maps to this type
         fields = ("id","customer", "products", "order_date", "total_amount") # defining which field are available to be accessed of mutated
+        filterset_class = OrderFilter
+        interfaces = (graphene.relay.Node,)
 
 
 # =============
@@ -209,9 +217,9 @@ class Mutation(graphene.ObjectType):
 class Query(graphene.ObjectType):
     # definng the outputs of the queries
     hello = graphene.String()
-    all_customers = graphene.List(CustomerType)
-    all_products = graphene.List(ProductType)
-    all_orders = graphene.List(OrderType)
+    all_customers = DjangoFilterConnectionField(CustomerType)
+    all_products = DjangoFilterConnectionField(ProductType)
+    all_orders = DjangoFilterConnectionField(OrderType)
 
     # this is the equivalent of mutate functions i think? defining the logic for each query
     def resolve_all_customers(root, info):
@@ -225,3 +233,5 @@ class Query(graphene.ObjectType):
 
     def resolve_hello(self, info):
         return "Hello, GraphQL!"
+    
+
